@@ -119,6 +119,9 @@ architecture rtl of genius_top is
     signal flash_cnt    : integer range 0 to NUM_FLASHES := 0;
     signal flash_state  : std_logic := '0';
 
+    -- Variável auxiliar para ST_CHECK (declarada como sinal)
+    signal v_input      : std_logic_vector(1 downto 0) := "00";
+
     -- ===========================================================
     -- Funções auxiliares - 7 segmentos (ativo baixo)
     -- ===========================================================
@@ -291,33 +294,30 @@ begin
                     end if;
 
                     if key_pressed /= "0000" then
+                        -- Registra qual botão foi pressionado antes de ir para ST_CHECK
+                        if    key_pressed(0) = '1' then v_input <= "00";
+                        elsif key_pressed(1) = '1' then v_input <= "01";
+                        elsif key_pressed(2) = '1' then v_input <= "10";
+                        else                            v_input <= "11";
+                        end if;
                         timer <= 0;
                         state <= ST_CHECK;
                     end if;
 
                 -- ---------------------------------------------------
                 -- ST_CHECK: Verifica a entrada do usuário
+                -- (v_input já foi gravado no ciclo anterior em ST_WAIT_USER)
                 -- ---------------------------------------------------
                 when ST_CHECK =>
-                    declare
-                        v_input : std_logic_vector(1 downto 0);
-                    begin
-                        -- Identifica qual botão foi pressionado
-                        if    key_pressed(0) = '1' then v_input := "00";
-                        elsif key_pressed(1) = '1' then v_input := "01";
-                        elsif key_pressed(2) = '1' then v_input := "10";
-                        else                            v_input := "11";
-                        end if;
-
                         -- Acende LED do botão pressionado como feedback
                         case v_input is
                             when "00" => led_reg <= "00000001";
                             when "01" => led_reg <= "00000100";
                             when "10" => led_reg <= "00010000";
-                            when "11" => led_reg <= "01000000";
-                            when others => null;
+                            when others => led_reg <= "01000000";
                         end case;
 
+                        -- Verifica se a entrada bate com a sequência
                         if v_input = seq_mem(seq_idx) then
                             -- Entrada correta
                             if seq_idx = seq_len - 1 then
@@ -340,7 +340,6 @@ begin
                             flash_cnt <= 0;
                             state     <= ST_LOSE_FLASH;
                         end if;
-                    end;
 
                 -- ---------------------------------------------------
                 -- ST_WIN: Animação de vitória (todos LEDs piscam 2x)
@@ -416,15 +415,10 @@ begin
     -- ===========================================================
     -- Display de 7 segmentos - Pontuação (dezenas / unidades)
     -- ===========================================================
-    process(score, state)
-        variable units : integer range 0 to 9;
-        variable tens  : integer range 0 to 9;
+    process(score, state, seq_len)
     begin
-        units := score mod 10;
-        tens  := score  / 10;
-
-        HEX0 <= to_7seg(units);
-        HEX1 <= to_7seg(tens);
+        HEX0 <= to_7seg(score mod 10);
+        HEX1 <= to_7seg(score / 10);
 
         -- HEX2 mostra nível atual, HEX3 fica apagado
         if seq_len > 0 then

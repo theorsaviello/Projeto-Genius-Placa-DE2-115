@@ -164,7 +164,7 @@ begin
     monitor_ledg: process(LEDG)
     begin
         if LEDG /= "00000000" then
-            report "MONITOR: LEDG = " & to_string(LEDG) severity note;
+            report "MONITOR: LEDG aceso" severity note;
         end if;
     end process;
 
