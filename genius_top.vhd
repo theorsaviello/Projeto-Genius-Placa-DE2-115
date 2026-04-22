@@ -11,7 +11,8 @@
 --   KEY2 (PIN_N21) -> Cor 2 (LEDG4 / PIN_B18)   [Vermelho]
 --   KEY3 (PIN_R24) -> Cor 3 (LEDG6 / PIN_F22)   [Azul]
 --   KEY0 (longo)   -> Start / Reset
---   HEX0-HEX1     -> Pontuação (00-99)
+--   HEX0-HEX1     -> Pontuação / acertos (00-99)
+--   HEX2-HEX3     -> Apagados (nível removido)
 --   LEDR[9:0]     -> Animação de Game Over
 -- ============================================================
 
@@ -413,28 +414,20 @@ begin
     LEDR <= ledr_reg;
 
     -- ===========================================================
-    -- Display de 7 segmentos - Pontuação (dezenas / unidades)
+    -- Display de 7 segmentos - Apenas pontuação (acertos)
+    -- HEX0 = unidades, HEX1 = dezenas, HEX2/HEX3 apagados
     -- ===========================================================
-    process(score, state, seq_len)
+    process(score, state)
     begin
         HEX0 <= to_7seg(score mod 10);
         HEX1 <= to_7seg(score / 10);
-
-        -- HEX2 mostra nível atual, HEX3 fica apagado
-        if seq_len > 0 then
-            HEX2 <= to_7seg(seq_len mod 10);
-        else
-            HEX2 <= SEG_OFF;
-        end if;
-
+        HEX2 <= SEG_OFF;
         HEX3 <= SEG_OFF;
 
-        -- No estado IDLE mostra traços para indicar pronto
+        -- No estado IDLE mostra traços apenas em HEX0 e HEX1
         if state = ST_IDLE then
             HEX0 <= SEG_DASH;
             HEX1 <= SEG_DASH;
-            HEX2 <= SEG_DASH;
-            HEX3 <= SEG_DASH;
         end if;
     end process;
 
